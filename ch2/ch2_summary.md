@@ -20,7 +20,7 @@ new project를 클릭한 뒤 Empty Activity를 선택했다. 세팅은 아래와
 
 * drawable: 이미지, 음악 파일 등을 넣는다.
 
-* layout: 화면을 구성하는 xml 파일이 잇다.
+* layout: 화면을 구성하는 xml 파일이 있다.
 
 * mipmap: 스마트폰 화면에 표시되는 이미지(어플 아이콘)을 넣는다.
 
