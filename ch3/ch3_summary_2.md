@@ -787,6 +787,605 @@ finish()로 끝내지 않고 Intent를 사용해서 MainActivity로 다시 화�
 
 View 클래스를 상속 받으면 텍스트, 이미지, 도형(점, 선, 사각형, 원 등)을 원하는 위치에 쉽게 표시할 수 있다. setContextView 메서드를 이용하여 xml 파일이 아닌 View 클래스를 상속 받은 나만의 클래스를 화면으로 설정하면 된다.
 
+```Java
+// MainActivity.Java
+
+package com.erectbranch.androidstudiobasic3;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.os.Bundle;
+import android.view.View;
+
+public class MainActivity extends AppCompatActivity {
+
+    Paint paint1 = new Paint();
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        MyView myView = new MyView(this);
+        setContentView(myView);
+    }
+
+    public class MyView extends View {
+
+        public MyView(Context context) {
+            super(context);
+            paint1.setColor(Color.RED);
+            paint1.setTextSize(40);
+        }
+
+        public void onDraw(Canvas canvas) {
+            // drawCircle(x좌표, y좌표, 반지름, paint)
+            canvas.drawCircle(100, 100, 100, paint1);
+            // drawRect(사각형 왼쪽 상단 x, y좌표, 오른쪽 하단 x, y좌표, paint)
+            canvas.drawRect(0, 300, 300, 400, paint1);
+            // drawText("텍스트", x좌표, y좌표)
+            canvas.drawText("View 클래스 상속 받아 onDraw 활용하기", 0, 500, paint1);
+        }
+
+    }
+}
+```
+
+Canvas 클래스는 텍스트 표시하기(drawText), 원 그리기(drawCircle), 이미지 표시하기(drawBitmap) 등 다양한 메서드를 가지고 있다.
+
+Paint 클래스는 색상을 설정하는 setColor, 텍스트 크기를 설정하는 setTextSize, 알파값을 설정하는 setAlpha 등 다양한 메서드를 가지고 있다. canvas.drawCircle(100, 100, 100, paint1);처럼 마지막 인수에 Paint 클래스의 객체를 넣어서 도형이나 글자의 속성을 지정한다.
+
+AVD에서 실행 시 다음과 같다.
+
+![onDraw 활용](images/ondraw_1.png)
 
 
+---
+
+
+### 미니 그림판 제작하기
+
+예제는 다음과 같은 구성이다. 
+
+* xml 파일 상단은 붓 크기 조절 및 색상 선택 버튼을 배치한다. 하단은 커스텀 뷰가 오도록 할 것이다.
+
+* 따라서 View 클래스를 상속 받는 클래스(커스텀 뷰)를 내부 클래스가 아닌 독립 클래스로 제작할 것이다.
+
+```xml
+<!-- activity_main.xml -->
+
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical"
+    tools:context=".MainActivity">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        >
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="+"
+            android:textSize="20dp"
+            android:onClick="increaseValue"
+            />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="-"
+            android:textSize="20dp"
+            android:onClick="decreaseValue"
+            />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="setRed"
+            android:text="빨강"
+            />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="setBlue"
+            android:text="파랑"
+            />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="setYellow"
+            android:text="노랑"
+            />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="setGreen"
+            android:text="녹색"
+            />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="setBlack"
+            android:text="검정"
+            />
+
+    </LinearLayout>
+
+    <!-- View 클래스를 상속 받은 MyView 클래스를 버튼 아래 배치 -->
+    <com.erectbranch.androidstudiobasic3.MyView
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        />
+
+</LinearLayout>
+```
+
+```Java
+// MainActivity.Java
+
+package com.erectbranch.androidstudiobasic3;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.os.Bundle;
+import android.view.View;
+
+public class MainActivity extends AppCompatActivity {
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+    }
+
+    public void increaseValue(View v) {
+        MyView.radius += 2;
+    }
+
+    public void decreaseValue(View v) {
+        MyView.radius -= 2;
+    }
+
+    public void setRed(View v) {
+        MyView.whatColor = 1;
+    }
+
+    public void setBlue(View v) {
+        MyView.whatColor = 2;
+    }
+
+    public void setYellow(View v) {
+        MyView.whatColor = 3;
+    }
+
+    public void setGreen(View v) {
+        MyView.whatColor = 4;
+    }
+
+    public void setBlack(View v) {
+        MyView.whatColor = 0;
+    }
+
+}
+
+```
+
+```Java
+// MyView.java
+
+package com.erectbranch.androidstudiobasic3;
+
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.util.AttributeSet;
+import android.view.MotionEvent;
+import android.view.View;
+
+public class MyView extends View {
+
+    Paint paint1 = new Paint(); // 검정
+    Paint paint2 = new Paint(); // 빨강
+    Paint paint3 = new Paint(); // 파랑
+    Paint paint4 = new Paint(); // 노랑
+    Paint paint5 = new Paint(); // 녹색
+
+    int myData_x[] = new int[30000];
+    int myDate_y[] = new int[30000];
+    int myData_color[] = new int[30000];
+
+    static int radius = 15;
+
+    int touchNumber = 0;
+    int touch_x, touch_y;
+    static int whatColor = 0;
+
+    public MyView(Context context, AttributeSet attr) {
+
+        super(context);
+        paint1.setColor(Color.BLACK);
+        paint2.setColor(Color.RED);
+        paint3.setColor(Color.BLUE);
+        paint4.setColor(Color.YELLOW);
+        paint5.setColor(Color.GREEN);
+
+        myData_x[0] = 0;
+        myDate_y[0] = 0;
+        myData_color[0] = 0;
+
+    }
+
+    @Override
+    public void onDraw(Canvas canvas) {
+
+        // 터치한 개수만큼 반복한다.
+        for (int i = 1; i <= touchNumber; i++) {
+
+            if (myData_color[i] == 0) {
+                canvas.drawCircle(myData_x[i], myDate_y[i], radius, paint1);
+            }
+
+            if (myData_color[i] == 1) {
+                canvas.drawCircle(myData_x[i], myDate_y[i], radius, paint2);
+            }
+
+            if (myData_color[i] == 2) {
+                canvas.drawCircle(myData_x[i], myDate_y[i], radius, paint3);
+            }
+
+            if (myData_color[i] == 3) {
+                canvas.drawCircle(myData_x[i], myDate_y[i], radius, paint4);
+            }
+
+            if (myData_color[i] == 4) {
+                canvas.drawCircle(myData_x[i], myDate_y[i], radius, paint5);
+            }
+
+        }
+        invalidate();    // onDraw() 메서드를 호출한다.
+    }
+
+    public void saveData() {    // 터치한 화면의 좌표와 색상을 지정한다.
+
+        myData_x[touchNumber] = touch_x;
+        myDate_y[touchNumber] = touch_y;
+        myData_color[touchNumber] = whatColor;
+
+    }
+
+    public boolean onTouchEvent(MotionEvent event) {
+
+        touch_x = (int) event.getX();
+        touch_y = (int) event.getY();
+
+        touchNumber += 1;    // 화면을 터치할 때마다 touchNumber 값이 1씩 증가한다.
+        saveData();
+        return true;
+    }
+
+}
+```
+
+![그림판 AVD 작동](images/painter_AVD_1.png)
+
+![그림판 AVD 작동 2](images/painter_AVD_2.png)
+
+
+---
+
+
+### 게임 속 우주선 움직이기
+
+사용자가 버튼을 터치할 때 우주선이 움직이게 할 것이다. 먼저 왼쪽, 오른쪽 버튼을 만들고 이 버튼을 터치하면 우주선이 움직인다. 
+
+* 해상도 구하기
+
+우선 단말기 해상도를 구하기 위해 Display 클래스의 getSize 메서드를 이용한다. getSize 메서드는 스크린의 가로, 세로 길이를 자동으로 구해준다. 아래 코드를 onCreate 메서드 안에 작성할 것이다.
+
+```Java
+Display display = getWindowManager().getDefaultDisplay();
+    Point size = new Point();
+    display.getSize( size );
+
+    int Width = size.x;
+    int Height = size.y;
+```
+
+* 그림 처리
+
+리소스 그림은 BitmapFactory 클래스의 decodeResource 메서드를 이용한다. 이 메서드는 [drawable] 폴더에 넣은 리소스 파일을 가져와서 비트맵으로 만든다. 여기선 plane.png 그림 파일을 가져와서 크기를 재조정할 것이다. 전 단계에서 단말기 해상도로 Width, Height를 받았으므로, 그 크기를 이용해 1/8로 나눈 것으로 plane 크기를 조정한다. Bitmap 클래스의 createScaledBitmap 메서드를 이용하면 된다.
+
+| 클래스 | 메서드 | 기능 |
+| --- | --- | --- |
+| BitmapFactory | decodeResource | 리소스 [drawable]에 있는 이미지를 가져와서 비트맵으로 만든다 |
+| Bitmap | createScaledBitmap | 이미지 크기를 재조정한다 |
+
+* onCreate 메서드
+
+Activity 실행 시 시스템에 의해 최초로 실행되는 메서드다.(main 함수와 유사) 이 특성상 초기값 설정, 객체 생성 등에 쓰인다. onCreate 메서드의 매개변수인 'savedInstanceState'는 어플리케이션이 이전에 실행된 정보를 가지고 있다.
+
+```Java
+protected void onCreate (Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    //...
+}
+```
+
+* View 클래스를 상속 받아 커스텀 뷰 처리
+
+MyView 클래스를 만들어서 사용자(User)와 상호작용을 처리할 것이다. onDraw() 메서드 안에 있는 drawBitmap 메서드 등을 활용해 그림이나 문자를 그려야 한다. View 클래스가 가진 여러 콜백 메서드를 이용하며, 여기서는 사용자가 화면을 터치하면 자동으로 실행되는 onTouchEvent 콜백 메서드를 사용한다.
+
+```Java
+class Myview extends View {
+    MyView(Context context) {
+        super(context);    // 상위 클래스의 생성자를 호출
+        //...
+    }
+
+    @Override
+    public void onDraw(Canvas canvas) {
+        // 이곳에 화면에 나타낼 그림이나 문자를 처리하는 코드를 작성한다.
+    }
+
+    public boolean onTouchEvent(MotionEvent event) {
+        // 이곳에 화면을 터치하면 발생하는 동작 코드를 작성한다.
+    }
+}
+```
+
+* onTouchEvent
+
+onTouchEvent 콜백 메서드는 사용자가 화면을 터치하면 event 객체를 통해 여러 정보를 전달해 준다. 여기서는 event 객체와 getAction() 메서드를 통해 사용자가 화면을 터치한 좌표를 얻을 것이다.
+
+```Java
+    public boolean onTouchEvent(MotionEvent event) {
+        int x=0, y=0;    // 사용자가 터치한 x,y 좌표를 저장할 변수
+        
+        // ACTION_DOWN: 사용자가 누르면 발생
+        // ACTION_UP: 누르고 있다가 떼면 발생
+        // ACTION_MOVE: 움직이고 있으면 발생
+        // 화면을 터치하거나 혹은 화면에서 터치로 움직이고 있으면
+        if ((event.getAction() == MotionEvent.ACTION_DOWN) || (event.getAction() == MotionEvent.ACTION_MOVE)) {
+
+            // x와 y 좌표를 변수에 저장한다.
+            x = (int) event_getX();
+            y = (int) event_getY();
+        
+        }
+
+        // 왼쪽 조작키를 터치하면
+        if((x>leftKey_x) && (x<leftKey_x+button_width) && (y>leftKey_y) && (x<leftKey_y+button_width)) {
+
+            plane_x -= 20;    // 우주선을 왼쪽으로 20만큼 이동시킨다.
+            return true;
+
+        }
+
+    } 
+```
+
+* Canvas 클래스
+
+Canvas 클래스에 있는 drawBitmap() 메서드와 drawText() 메서드를 활용하기 위해서는 먼저 Canvas 객체를 하나 생성해야 한다/ 여기서는 객체명을 canvas로 하여 Canvas 클래스의 객체를 생성할 것이다.(즉, canvas.drawBitmap(), canvas.drawText()처럼 처리하게 된다.)
+
+```java
+public void onDraw(Canvas canvas) {
+
+    // Paint 객체를 생성하면 색상, 선의 스타일, 글자 크기 등 다양한 효과를 지정할 수 있다.
+    Paint paint1 = new Paint();
+    paint1.setColor(Color.RED);
+    paint1.setTextSize(50);
+
+    // (표시할 대상, x좌표, y좌표, paint 객체)
+    canvas.drawText("hello", 0, 200, paint1);
+    canvas.drawBitmap(plane, plane_x, plane_y, paint1);
+    canvas.drawBitmap(leftKey, leftKey_x, leftKey_y, paint1);
+    canvas.drawBitmap(rightKey, rightKet_x, rightKey_y, paint1);
+}
+```
+
+> Paint 클래스를 이용하면 이미지와 글자를 표현할 때 색상, 선의 스타일, 글자 크기 등 다양한 효과를 낼 수 있다. Paint 클래스 객체를 생성한 뒤 그 객체를 drawText, drawBitmap 등 메서드의 마지막 매개변수로 넣으면 된다.
+
+> drawText() 메서드로 숫자를 표현하기 위해서는 숫자를 문자로 바꾸거나 ""를 붙여주면 된다.
+
+```Java
+drawText( Integer.toString(숫자), x, y, paint1);
+drawText( 숫자 + "", x, y, paint1);
+```
+
+아래는 MainActivity.java 기본적인 구조다.
+
+```Java
+public class MainActivity extends AppCompatActivity {
+
+    Bitmap plane;    // 비트맵 필드 변수
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(new MyView(this));
+    }
+
+    // 상호작용을 처리할 MyView 클래스
+    class MyView extends View {
+
+        // drawBitmap, drawText 등을 사용해 이미지와 문자를 표현
+        public void onDraw(Canvas canvas) {
+
+
+        }
+
+
+        Handler gHandler = new Handler() {
+
+            public void handleMessage(Message meg) {
+                invalidate();    // onDraw 메서드를 호출한다
+                gHandler.sendEmptyMessageDelayed(0, 1000);
+            }
+
+        };
+
+        // 사용자가 터치하면 작용할 코드
+        public boolean onTouchEvent(MotionEvent event) {
+            //
+        }
+
+    }    // end of MyView
+
+}    // end of MainActivity
+```
+
+여기에 앞서 구현한 코드를 집어 넣으면 다음과 같다.
+
+```Java
+public class MainActivity extends AppCompatActivity {
+
+    // 비트맵 필드 변수
+    Bitmap plane;                 // 우주선
+    Bitmap leftKey, rightKey;     // 좌우 방향키
+    Bitmap screen;                // 배경
+
+    int plane_x, plane_y;         // 우주선 위치
+    int leftKey_x, leftKey_y;    // 좌우 방향키 위치
+    int rightKey_x, rightKey_y;
+    int Width, Height;            // 해상도(기기 가로, 세로 길이)
+    int button_width;             // 방향키 버튼 크기
+
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        // this: 현재 Activity
+        setContentView(new MyView(this));
+
+        // 해상도를 가져온다
+        Display display = getWindowManager().getDefaultDisplay();
+
+        Point size = new Point();
+        display.getSize( size );
+        Width = size.x;
+        Height = size.y;
+
+        // 에셋을 비트맵으로 불러오기
+        plane = BitmapFactory.decodeResource(getResources(), R.drawable.plane);
+        leftKey = BitmapFactory.decodeResource(getResources(), R.drawable.leftkey);
+        rightKey = BitmapFactory.decodeResource(getResources(), R.drawable.rightkey);
+        screen = BitmapFactory.decodeResource(getResources(), R.drawable.screen);
+
+        // 에셋 크기 설정
+        // 우주선
+        int x = Width/8;
+        int y = Height/11;
+        plane = Bitmap.createScaledBitmap(plane, x, y, true);
+
+        plane_x = Width*1/9;
+        plane_y = Height*6/9;
+
+        // 좌우 방향키
+        leftKey_x = Width*5/9;
+        leftKey_y = Height*7/9;
+
+        rightKey_x = Width*5/9;
+        rightKey_y = Height*7/9;
+
+        button_width = Width/6;
+
+        leftKey = Bitmap.createScaledBitmap(leftKey, button_width, button_width, true);
+        rightKey = Bitmap.createScaledBitmap(leftKey, button_width, button_width, true);
+
+        // 배경
+        screen = Bitmap.createScaledBitmap(screen, Width, Height, true);
+
+    }
+
+    // 상호작용을 처리할 MyView 클래스
+    class MyView extends View {
+
+        MyView(Context context) {
+
+            super(context);     // 상위 클래스의 생성자를 호출해야 한다
+            setBackgroundColor(Color.BLUE);
+
+        }
+
+        // drawBitmap, drawText 등을 사용해 이미지와 문자를 표현
+        @Override
+        public void onDraw(Canvas canvas) {
+
+            Paint paint1 = new Paint();
+            paint1.setColor(Color.RED);
+            paint1.setTextSize(50);
+
+            // 배경 그리기
+            canvas.drawBitmap(screen, 0, 0, paint1);
+
+            // 우주선
+            canvas.drawBitmap(plane, plane_x, plane_y, paint1);
+
+            // 방향키
+            canvas.drawBitmap(leftKey, leftKey_x, leftKey_y, paint1);
+            canvas.drawBitmap(rightKey, rightKey_x, rightKey_y, paint1);
+            
+        }
+
+        // 사용자가 터치하면 작용할 코드
+        @Override
+        public boolean onTouchEvent(MotionEvent event) {
+            int x=0, y=0;
+
+            if ((event.getAction() == MotionEvent.ACTION_DOWN) || (event.getAction() == MotionEvent.ACTION_MOVE)) {
+
+                // x와 y 좌표를 변수에 저장한다.
+                x = (int) event.getX();
+                y = (int) event.getY();
+
+            }
+
+            // 왼쪽 조작키를 터치하면
+            if((x>leftKey_x) && (x<leftKey_x+button_width) && (y>leftKey_y) && (x<leftKey_y+button_width)) {
+
+                plane_x -= 20;    // 우주선을 왼쪽으로 20만큼 이동시킨다.
+
+            }
+
+            // 오른쪽 조작키를 터치하면
+            if((x>rightKey_x) && (x<rightKey_x+button_width) && (y>rightKey_y) && (x<rightKey_y+button_width)) {
+
+                plane_x += 20;    // 우주선을 왼쪽으로 20만큼 이동시킨다/
+
+            }
+
+            invalidate();
+            return true;    // 제대로 처리되면 true 값을 반환한다.
+
+        }
+
+    }    // end of MyView
+
+}    // end of MainActivity
+```
+
+AVD로 실행하면 다음과 같다. 현재는 방향키를 눌러서 좌우로 우주선을 움직일 수만 있다.
+
+![우주선 이동](images/gamebasic_1.png)
 
