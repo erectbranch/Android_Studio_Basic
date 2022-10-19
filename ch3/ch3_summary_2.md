@@ -1217,48 +1217,6 @@ drawText( 숫자 + "", x, y, paint1);
 ```Java
 public class MainActivity extends AppCompatActivity {
 
-    Bitmap plane;    // 비트맵 필드 변수
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(new MyView(this));
-    }
-
-    // 상호작용을 처리할 MyView 클래스
-    class MyView extends View {
-
-        // drawBitmap, drawText 등을 사용해 이미지와 문자를 표현
-        public void onDraw(Canvas canvas) {
-
-
-        }
-
-
-        Handler gHandler = new Handler() {
-
-            public void handleMessage(Message meg) {
-                invalidate();    // onDraw 메서드를 호출한다
-                gHandler.sendEmptyMessageDelayed(0, 1000);
-            }
-
-        };
-
-        // 사용자가 터치하면 작용할 코드
-        public boolean onTouchEvent(MotionEvent event) {
-            //
-        }
-
-    }    // end of MyView
-
-}    // end of MainActivity
-```
-
-여기에 앞서 구현한 코드를 집어 넣으면 다음과 같다.
-
-```Java
-public class MainActivity extends AppCompatActivity {
-
     // 비트맵 필드 변수
     Bitmap plane;                 // 우주선
     Bitmap leftKey, rightKey;     // 좌우 방향키
@@ -1305,13 +1263,13 @@ public class MainActivity extends AppCompatActivity {
         leftKey_x = Width*5/9;
         leftKey_y = Height*7/9;
 
-        rightKey_x = Width*5/9;
+        rightKey_x = Width*7/9;
         rightKey_y = Height*7/9;
 
         button_width = Width/6;
 
         leftKey = Bitmap.createScaledBitmap(leftKey, button_width, button_width, true);
-        rightKey = Bitmap.createScaledBitmap(leftKey, button_width, button_width, true);
+        rightKey = Bitmap.createScaledBitmap(rightKey, button_width, button_width, true);
 
         // 배경
         screen = Bitmap.createScaledBitmap(screen, Width, Height, true);
@@ -1345,7 +1303,7 @@ public class MainActivity extends AppCompatActivity {
             // 방향키
             canvas.drawBitmap(leftKey, leftKey_x, leftKey_y, paint1);
             canvas.drawBitmap(rightKey, rightKey_x, rightKey_y, paint1);
-            
+
         }
 
         // 사용자가 터치하면 작용할 코드
@@ -1388,4 +1346,506 @@ public class MainActivity extends AppCompatActivity {
 AVD로 실행하면 다음과 같다. 현재는 방향키를 눌러서 좌우로 우주선을 움직일 수만 있다.
 
 ![우주선 이동](images/gamebasic_1.png)
+
+
+---
+
+
+### 미사일 발사 및 소행성 움직이기
+
+위에서 만든 예제 게임은 버튼을 터치할 경우에만 invalidate를 통해서 화면이 새롭게 그려지는 단점이 있다. 이렇게 설계를 한다면 미사일을 발사했을 때 버튼 터치와는 관계 없이 미사일만 계속 움직이게 할 수 없다. 이 문제를 해결하기 위해서는 Thread의 일종인 Handler를 무명 클래스로 구성하고 그 안에 invalidate를 넣어 onDraw 메서드가 실행되게 구성하면 된다.
+
+무명 클래스 Handler는 처음 View를 상속한 클래스(여기서는 MyView)의 생성자에서 한 번만 실행하게 만들면 자동으로 계속 실행이 된다.
+
+미사일과 소행성의 정보를 담은 클래스 파일을 각각 만들 것이다. [Java] 폴더에서 [New] - [Java Class]로 새 클래스를 만든다. (MyMissile.java, Planet.java)
+
+1. MyMissile 클래스는 다음과 같이 만든다.
+
+* public 클래스로 만든다. 클래스이므로 대문자로 시작한다.
+
+* MyMissle 필드 영역에 미사일 위치를 나타내는 missile_x, missile_y 변수와 미사일 속도를 나타내는 missileSpeed 변수를 만든다.
+
+* move 메서드를 만들어 설정한 속도(missileSpeed)에 따라 미사일이 날아가게 한다. 값이 클수록 화면 위쪽으로 빠르게 움직인다.
+
+```Java
+// MyMissile.java
+
+public class MyMissile {
+
+    int missile_x, missile_y;
+    int missileSpeed = 35;
+
+    MyMissile(int x, int y) {
+        this.missile_x = x;
+        this.missile_y = y;
+    }
+
+    public void move() {
+        missile_y -= missileSpeed;     // 설정한 missileSpeed 만큼 위로 이동(좌측 상단이 (0,0))
+    }
+
+}
+```
+
+2. 행성 움직임을 나타내는 Planet 클래스다.
+
+```Java
+// Planet.java
+
+public class Planet {
+
+    // 행성 변수
+    int planet_x, planet_y;
+    int planetSpeed = 15;
+    int planetDir;                           // 행성의 방향
+    static final int DIR_LEFT = 0;     // 행성이 왼쪽으로 이동
+    static final int DIR_RIGHT = 1;    // 행성이 오른쪽으로 이동
+
+    Planet(int x, int y, int dir) {
+        this.planet_x = x; this.planet_y = y; this.planetDir = dir;
+    }
+
+    public void move() {
+
+        if(this.planetDir == DIR_LEFT)    {         // 왼쪽으로 이동하면
+            planet_x -= planetSpeed;
+        } else if(this.planetDir == DIR_RIGHT) {    // 오른쪽으로 이동하면
+            planet_x += planetSpeed;
+        }
+
+    }
+
+}
+```
+
+3. 특정 코드 반복 실행
+
+Handler를 활용해서 특정 코드를 일정 간격으로 반복해서 호출할 수 있다. 이를 이용해서 View의 onDraw() 메서드를 호출하면 미사일, 우주선, 행성 위치를 호출할 때마다 다시 그려줄 것이다. 생성자 영역에 한 번만 적어주면 다음부터는 일정한 시간에 맞춰 자동으로 반복해서 실행해 준다.
+
+아래는 Handler 코드다. 이때 반복에 지연 시간을 입력하는 코드를 유심히 보자. sendEmptyMessageDelayed(0, 1000)에서 두 번째 인자 1000은 지연값을 의미하며, 지연값 만큼의 시간 후 다음 문장이 실행된다. 지연값 1000 = 1초를 의미하며 따라서 1초 delay 뒤 다음 문장이 실행된다.(지연값 100이면 0.1초마다 실행된다는 것과 마찬가지다.)
+
+아래 코드는 Handler gHandler = new Handler()로 이미 핸들러 객체를 생성하고 진행한 것이다.
+
+```Java
+MyView(Context context) {
+    //...
+    gHandler.sendEmptyMessageDelayed(0, 200);
+}
+
+// 메모리 누수로 인해 권장하지 않는 방식
+Handler gHandler = new Handler() {
+
+    public void handleMessage(Message msg) {
+        invalidate();
+        gHandler.sendEmptyMessageDelayed(0, 200);  // 1000로 하면 1초에 한번 실행된다.
+
+    }
+};
+```
+
+그런데 게임에서는 행성이 하나만 있지 않고 여러 개가 움직일 예정이다. 따라서 행성을 관리하기 쉽도록 ArrayList 클래스를 이용할 것이다. 행성을 추가하려면 add() 메서드를 이용하고, 행성을 제거하려면 remove() 메서드를 사용할 것이다. 
+
+ArrayList 클래스 사용법은 다음과 같다.
+
+```Java
+ArrayList<클래스명> 객체명;         // 클래스 형태의 ArrayList 객체를 선언
+객체명 = new ArrayList<클래스명>    // 객체를 생성한다.
+```
+
+본 예제에서는 다음과 같이 사용할 것이다.
+
+```Java
+ArrayList<Planet> planet;
+planet = new ArrayList<Planet>(); 
+```
+
+4. 미사일 움직이기
+
+또한 미사일이 움직이게 해야 하므로 moveMissile() 메서드를 만든다. 미사일을 움직이게 하면서, 화면을 벗어난 미사일은 제거할 것이다. ArrayList의 get(i) 메서드를 이용하여 i번째 미사일의 x좌표, y좌표를 얻는다.
+
+```Java
+public void moveMissile() {
+    // 미사일을 계속 움직인다.
+    for (int i = myM.size() - 1; i >= 0; i--) {
+        myM.get(i).move();
+    }
+
+    // 미사일이 화면 밖을 벗어나면 미사일을 제거한다.
+    for (int i = myM.size() - 1; i >= 0; i--) {
+        if (myM.get(i).missile_y < 0) {
+            myM.remove(i);
+        }
+    }
+}
+```
+
+5. 행성 랜덤하게 생성하기
+
+Random 클래스를 이용해 난수를 발생시켜 행성이 랜덤 위치를 돌아다니도록 만들 것이다.
+
+```Java
+Random random1 = new Random();
+            int ran = random1.nextInt(Width);
+            int ran2 = random1.nextInt(Height*1/3);
+            int ran3 = random1.nextInt(2);    // 왼쪽 오른쪽 랜덤 변수
+
+
+            if(planet.size() < 5) {     // 소행성이 5개 미만으로 있다면
+                planet.add(new Planet(ran, ran2, ran3));    // 랜덤한 좌표에 소행성 생성
+            }
+```
+
+6. 미사일 발사 처리하기
+
+사용자가 미사일 버튼 영역을 터치하면 미사일을 발사하도록 처리한다. 미사일 버튼의 좌상단이 (missileButton_x, missileButton_y)이며, 여기에 button_width를 더한 것이 가로, 세로 크기가 된다.
+
+```Java
+if (event.getAction() == MotionEvent.ACTION_DOWN) {
+    
+    // 버튼 영역을 사용자가 터치하면
+    if ((x > missileButton_x) && (x < missileButton_x + button_width)
+         && (y > missileButton_y) && (y < missileButton_y + button_width)) {
+            // 미사일을 발사한다.
+            myM.add(new MyMissile(plane_x + plane.getWidth() / 2- missileWidth /2, plane_y));    // 우주선의 중앙에서 발사
+
+         }
+
+}
+```
+
+7. 확장 for 구문을 사용해서 행성 생성하기
+
+for(자료형 임시변수 : 배열) 문법을 사용해서 하나씩 행성을 생성할 것이다.
+
+```Java
+for(Planet tmp : planet) {
+    canvas.drawBitmap(asteroid, tmp.planet_x, tmp.planet_y, paint1);
+}
+```
+
+8. 미사일과 행성 충돌 처리
+
+```Java
+public void checkCollision() {
+    // 이중 for 구문
+    for (int i = planet.size() - 1; i > 0; i--) {
+
+        for (int j = myM.size() - 1; j >= 0; j--) {
+
+            // i번째 행성에 어떤 미사일(j)가 충돌하면
+            if ( collision_x(i, j) && collision_y(i, j) ) {
+
+                planet.remove(i);        // i번째 행성을 제거한다.
+                myM.get(j).missile_y = -30;      // 미사일을 화면 밖으로
+
+                score += 10;             // 점수 + 10
+
+            }
+
+        }
+    }
+
+}    // end of checkCollision
+
+public boolean collision_x (int i, int j) {
+    // i번째 행성 x좌표 좌측끝 < 어떤 미사일의 x좌표 + 미사일 크기의 반 < i번째 행성의 x좌표 우측끝이면
+    return (myM.get(j).missile_x + missile_middle > planet.get(i).planet_x) && (myM.get(j).missile_x + missile_middle < planet.get(i).planet_x + button_width);
+}
+
+public boolean collision_y (int i, int j) {
+    // i번째 행성의 y좌표 상단 < 어떤 미사일의 y좌표 < i번째 행성의 y좌표 하단
+    return (myM.get(j).missile_y > planet.get(i).planet_y) && (myM.get(j).missile_y < planet.get(i).planet_y + button_width);
+}
+```
+
+아래는 위 과정을 합친 코드 전문이다.
+
+
+```Java
+public class MainActivity extends AppCompatActivity {
+
+    // 비트맵 필드 변수
+    Bitmap plane;                 // 우주선
+    Bitmap leftKey, rightKey;     // 좌우 방향키
+    Bitmap screen;                // 배경
+
+    Bitmap asteroid;              // 장애물 행성
+    Bitmap missile;               // 미사일
+    Bitmap missileButton;         // 미사일 발사키
+
+
+    int plane_x, plane_y;         // 우주선 위치
+    int planeWidth;               // 우주선 크기
+    int leftKey_x, leftKey_y;     // 좌우 방향키 위치
+    int rightKey_x, rightKey_y;
+    int Width, Height;            // 해상도(기기 가로, 세로 길이)
+    int button_width;             // 방향키 버튼 크기
+
+    int score;                    // 점수
+
+    int count;                    // 화면이 계속 그려지면서 올라가는 count
+
+    int missileButton_x, missileButton_y;    // 미사일 버튼 좌표
+    int missileWidth;                        // 미사일 버튼 길이
+    int missile_middle;                      // 미사일 크기 1/2
+
+    ArrayList<MyMissile> myM;
+    ArrayList<Planet> planet;
+
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        // this: 현재 Activity
+        setContentView(new MyView(this));
+
+        // 해상도를 가져온다
+        Display display = getWindowManager().getDefaultDisplay();
+
+        Point size = new Point();
+        display.getSize( size );
+        Width = size.x;
+        Height = size.y;
+
+        // 에셋을 비트맵으로 불러오기
+        plane = BitmapFactory.decodeResource(getResources(), R.drawable.plane);
+        leftKey = BitmapFactory.decodeResource(getResources(), R.drawable.leftkey);
+        rightKey = BitmapFactory.decodeResource(getResources(), R.drawable.rightkey);
+        screen = BitmapFactory.decodeResource(getResources(), R.drawable.screen);
+        missileButton = BitmapFactory.decodeResource(getResources(), R.drawable.missilebutton);
+        missile = BitmapFactory.decodeResource(getResources(), R.drawable.missile);
+        asteroid = BitmapFactory.decodeResource(getResources(), R.drawable.asteroid);
+
+        // 에셋 크기 설정
+        // 우주선 크기
+        int plane_width = Width/8;
+        int plane_height = Height/11;
+
+        // 방향키 크기
+        button_width = Width/6;
+
+        // 사이즈 조절
+        // Bitmap.createScaledBitmap(Bitmap, 가로 사이즈, 세로 사이즈, 필터 적용 여부))
+        plane = Bitmap.createScaledBitmap(plane, plane_width, plane_height, true);
+        leftKey = Bitmap.createScaledBitmap(leftKey, button_width, button_width, true);
+        rightKey = Bitmap.createScaledBitmap(rightKey, button_width, button_width, true);
+        screen = Bitmap.createScaledBitmap(screen, Width, Height, true);    // 배경
+        missileButton = Bitmap.createScaledBitmap(missileButton, button_width, button_width, true);
+        missile = Bitmap.createScaledBitmap(missile, button_width / 4, button_width / 4, true);
+        asteroid = Bitmap.createScaledBitmap(asteroid, button_width, button_width, true);
+
+        // 우주선의 처음 좌표
+        plane_x = Width/9;
+        plane_y = Height*6/9;
+
+        // 좌우 방향키 좌표
+        leftKey_x = Width*5/9;
+        leftKey_y = Height*7/9;
+
+        rightKey_x = Width*7/9;
+        rightKey_y = Height*7/9;
+
+        // 미사일 버튼 좌표
+        missileButton_x = Width/11;
+        missileButton_y = Height*7/9;
+
+        // 미사일과 소행성 ArrayList
+        myM = new ArrayList<MyMissile>();
+        planet = new ArrayList<Planet>();
+
+        missileWidth = missile.getWidth();
+        planeWidth = plane.getWidth();
+
+    }
+
+    // 상호작용을 처리할 MyView 클래스
+    class MyView extends View {
+
+        MyView(Context context) {
+
+            super(context);     // 상위 클래스의 생성자를 호출해야 한다
+            setBackgroundColor(Color.BLUE);
+
+            // Handler
+            gHandler.sendEmptyMessageDelayed(0, 200);
+
+        }
+
+        // drawBitmap, drawText 등을 사용해 이미지와 문자를 표현
+        @Override
+        synchronized public void onDraw(Canvas canvas) {
+
+            // 소행성 생성하기 앞서 랜덤 변수 생성
+            Random random1 = new Random();
+            int ran = random1.nextInt(Width);
+            int ran2 = random1.nextInt(Height*1/3);
+            int ran3 = random1.nextInt(2);    // 왼쪽 오른쪽 랜덤 변수
+
+
+            if(planet.size() < 5) {                             // 소행성이 5개 미만으로 있다면
+                planet.add(new Planet(ran, ran2, ran3));    // 랜덤한 좌표에 소행성 생성
+            }
+
+            Paint paint1 = new Paint();
+            paint1.setColor(Color.RED);
+            paint1.setTextSize(50);
+
+            // 배경 그리기
+            canvas.drawBitmap(screen, 0, 0, paint1);
+
+            // 우주선
+            canvas.drawBitmap(plane, plane_x, plane_y, paint1);
+
+            // 방향키
+            canvas.drawBitmap(leftKey, leftKey_x, leftKey_y, paint1);
+            canvas.drawBitmap(rightKey, rightKey_x, rightKey_y, paint1);
+
+            // 미사일 버튼
+            canvas.drawBitmap(missileButton, missileButton_x, missileButton_y, paint1);
+
+            // 점수 표시
+            canvas.drawText("점수 : " + Integer.toString(score), 0, 200, paint1);
+
+            // 카운트 표시
+            canvas.drawText(Integer.toString(count), 0, 300, paint1);
+
+            // 미사일
+            for (MyMissile tmp : myM) {
+                canvas.drawBitmap(missile, tmp.missile_x, tmp.missile_y, paint1);
+            }
+
+            // 소행성
+            for (Planet tmp : planet) {
+                canvas.drawBitmap(asteroid, tmp.planet_x, tmp.planet_y, paint1);
+            }
+
+            moveMissile();
+            movePlanet();
+            checkCollision();
+            count++;
+
+        }
+
+        public void moveMissile() {
+            // 미사일을 계속 움직인다.
+            for (int i = myM.size() - 1; i >= 0; i--) {
+                myM.get(i).move();
+            }
+
+            // 미사일이 화면 밖을 벗어나면 미사일을 제거한다.
+            for (int i = myM.size() - 1; i >= 0; i--) {
+                if (myM.get(i).missile_y < 0) {
+                    myM.remove(i);
+                }
+            }
+        }
+
+                public void movePlanet() {
+                    for (int i = planet.size() - 1; i >= 0; i--) {
+                        planet.get(i).move();
+                    }
+
+                    // 소행성이 화면 밖을 벗어나면 소행성을 제거한다.
+                    for (int i = planet.size() - 1; i >= 0; i--) {
+                        if ( (planet.get(i).planet_x < 0) || (planet.get(i).planet_x > Width) ) {
+                    planet.remove(i);
+                }
+            }
+        }
+
+        public void checkCollision() {
+            // 이중 for 구문
+            for (int i = planet.size() - 1; i > 0; i--) {
+
+                for (int j = myM.size() - 1; j >= 0; j--) {
+
+                    // i번째 행성에 어떤 미사일(j)가 충돌하면
+                    if ( collision_x(i, j) && collision_y(i, j) ) {
+
+                        planet.remove(i);        // i번째 행성을 제거한다.
+                        myM.get(j).missile_y = -30;      // 미사일을 화면 밖으로
+
+                        score += 10;             // 점수 + 10
+
+                    }
+
+                }
+            }
+
+        }    // end of checkCollision
+
+        public boolean collision_x (int i, int j) {
+            // i번째 행성 x좌표 좌측끝 < 어떤 미사일의 x좌표 + 미사일 크기의 반 < i번째 행성의 x좌표 우측끝이면
+            return (myM.get(j).missile_x + missile_middle > planet.get(i).planet_x) && (myM.get(j).missile_x + missile_middle < planet.get(i).planet_x + button_width);
+        }
+
+        public boolean collision_y (int i, int j) {
+            // i번째 행성의 y좌표 상단 < 어떤 미사일의 y좌표 < i번째 행성의 y좌표 하단
+            return (myM.get(j).missile_y > planet.get(i).planet_y) && (myM.get(j).missile_y < planet.get(i).planet_y + button_width);
+        }
+
+
+        // 특정 코드를 반복하게 만들 핸들러
+        Handler gHandler = new Handler() {
+
+            public void handleMessage(Message msg) {
+                invalidate();
+                gHandler.sendEmptyMessageDelayed(0, 200);  // 1000로 하면 1초에 한번 실행된다.
+
+            }
+        };
+
+
+        // 사용자가 터치하면 작용할 코드
+        @Override
+        public boolean onTouchEvent(MotionEvent event) {
+            int x=0, y=0;
+
+            if ((event.getAction() == MotionEvent.ACTION_DOWN) || (event.getAction() == MotionEvent.ACTION_MOVE)) {
+
+                // x와 y 좌표를 변수에 저장한다.
+                x = (int) event.getX();
+                y = (int) event.getY();
+
+            }
+
+            // 왼쪽 조작키를 터치하면
+            if((x>leftKey_x) && (x<leftKey_x+button_width) && (y>leftKey_y) && (x<leftKey_y+button_width)) {
+
+                plane_x -= 20;    // 우주선을 왼쪽으로 20만큼 이동시킨다.
+
+            }
+
+            // 오른쪽 조작키를 터치하면
+            if((x>rightKey_x) && (x<rightKey_x+button_width) && (y>rightKey_y) && (x<rightKey_y+button_width)) {
+
+                plane_x += 20;    // 우주선을 왼쪽으로 20만큼 이동시킨다/
+
+            }
+
+            // 미사일 버튼을 터치하면
+            if ( (x > missileButton_x) && (x < missileButton_x + button_width)
+                    && (y > missileButton_y) && (y < missileButton_y + button_width) ) {
+                // 미사일을 발사한다.
+                myM.add(new MyMissile(plane_x + planeWidth / 2 - missileWidth /2, plane_y));    // 우주선의 중앙에서 발사
+
+            }
+
+            invalidate();
+            return true;    // 제대로 처리되면 true 값을 반환한다.
+
+        }
+
+    }    // end of MyView
+
+}    // end of MainActivity
+```
+
+아래는 AVD로 실행한 화면이다.
+
+![우주선 소행성 게임](images/gamebasic_AVD.png)
+
+---
+
 
