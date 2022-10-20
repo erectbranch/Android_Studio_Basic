@@ -543,3 +543,7 @@ public class MainActivity extends AppCompatActivity {
 
 }     // end of MainActivity
 ```
+
+다음은 AVD에서 실행한 화면이다.
+
+![바구니 수학 게임 AVD 실행](images/mathgame_AVD_1.png)
