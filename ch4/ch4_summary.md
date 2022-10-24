@@ -1189,6 +1189,14 @@ public class MainActivity extends Activity {
 
 Balloon.java와 AnswerBalloon.java는 3장 코드와 동일하다.
 
+아래는 AVD에서 실행한 화면이다.
+
+![AVD 실행 화면 1](images/mathgame_surface_AVD_1.png)
+
+![AVD 실행 화면 2](images/mathgame_surface_AVD_2.png)
+
+![AVD 실행 화면 3](images/mathgame_surface_AVD_3.png)
+
 
 ---
 
