@@ -6,6 +6,8 @@ TabWidget을 활용하여 일기장 앱을 제작할 것이다.
 
 ## TabWidget을 활용한 일기장 앱(지원 종료)
 
+![일기장 구조](images/mydiary_sample.png)
+
 메인 메뉴는 크게 [일기보기], [일기쓰기], [App소개] 세 탭으로 구성한다. 
 
 TabWidget은 기본적으로 제공되는 사용자 인터페이스 구성요소다. 탭(버튼)을 사용해서 화면에서 동일한 영역에 다른 내용을 번갈아 표시할 때 사용한다. TabWidget 클래스는 탭 위젯 안에 표시되는 탭을 추가하거나, 수정, 삭제하는 기능을 지니고 있다. TabWidget 클래스로 탭을 만들었다면, 표시하는 내용을 관리하기 위한 TabHost 클래스도 필요하다.
@@ -116,6 +118,8 @@ public class MainActivity extends TabActivity {
 
 2. DB를 위해 사용한 클래스와 인터페이스
 
+> [SQLiteOpenHelper 사용하여 DB 수정하기](https://ju-hy.tistory.com/71)
+
 DBManager 클래스는 SQLiteOpenHelper 클래스를 상속 받아 데이터베이스와 테이블을 관리하는 메서드를 사용할 것이다. 다른 파일(ShowMyData.java, WriteDiaryActivity.java, ModifyMyDate.java)에서 이를 사용한다. 
 
 1. SQLiteOpenHelper
@@ -155,6 +159,7 @@ public class DBManager extends SQLiteOpenHelper {
 
     public DBManager(Context context) {
         super(context, "csc", null, 1);    // csc라는 이름의 DB
+                                           // context, DB 이름, 팩토리 null, 버전 1
     }
 
     // SQLiteOpenHelper의 onCreate() 메서드로 Create Table 명령을 사용해서 테이블을 생성한다.
