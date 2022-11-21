@@ -1,5 +1,7 @@
 # 안드로이드 - 파이썬 서버 JSON 파일 주고 받기
 
+> [Transfer the File “Client Socket to Server Socket”](https://www.geeksforgeeks.org/transfer-the-file-client-socket-to-server-socket-in-java/): sendFile(파일 경로) 메서드를 만들어서, 서버로 데이터를 전송
+
 ## 1 소켓 통신 복습
 
 > [파이썬 소켓 프로그래밍](https://webnautes.tistory.com/1381)
@@ -193,7 +195,7 @@ json 모듈을 import해서 JSON 문자열을 다룰 수 있다.
 import socket
 import json
 
-HOST, PORT = "192.168.0.18", 9527
+HOST, PORT = "192.168.0.18", 8080
 
 # (보내기) 보내기용 JSON 샘플
 data = {
@@ -229,6 +231,161 @@ print ("Received: {}".format(received))
 ```Python
 with open('output.json', 'w') as f:
     json.dump(received, f, indent=2)
+```
+
+---
+
+## 3 Android 클라이언트에서 서버로 보낼 JSON 파일 불러오기
+
+> [Android에서 JSON 파일 사용하기](https://devziner.tistory.com/37)
+
+> [Android에서 JSON 파싱하기](https://lktprogrammer.tistory.com/175)
+
+우선 안드로이드에서 JSON 파일을 다루는 클래스인 JSONObject에 대해 알아야 한다.
+
+> [JSONObject 사용하기](https://mailmail.tistory.com/11)
+
+1. **JSONObject, JSONArray 형태**
+
+JSONObject는 JSON 파일과 마찬가지로 name : value 쌍 형태로 구성된다. 
+
+> {"아이디":"erectbranch","이름":"홍길동","성별":"남"}
+
+- JSONObject.put() 메서드로 객체 안에 name: value 쌍을 담을 수 있다.
+
+![JSONArray](images/JSONArray.png)
+
+JSONObject 객체들은 JSONArray라는 array에 담겨질 수 있다. JSONArray는 Title: JSONObject 묶음 형태로 구성된다.
+
+> {"profiles":[{"아이디":"erectbranch","이름":"홍길동","성별":"남"}, {"아이디":"iris","이름":"김영희","성별":"여"}]}
+
+2. **Android에서 JSON 파싱하기**
+
+가장 쉽게 Android에서 JSON 파일을 찾게 하려면 [app] - [assets] 경로에 JSON 파일을 넣는 것이 편하다.(안드로이드 외장 메모리에 있는 파일에 접근하려면 권한과 여러 메서드가 필요하다.)
+
+![assets 폴더](images/app-assets.png)
+
+이렇게 [assets] 폴더에 JSON 파일을 넣었다면, 다음과 같은 getJsonString() 함수로 JSON 파일을 불러와서 문자열 객체에 담을 수 있다.
+
+```Java
+    private String getJsonString(){
+        String json_string = "";
+
+        try {
+            InputStream inputStream = getAssets().open("Movies.json");    // byte 단위로 JSON 파일이 담긴 InputStream 객체.
+            int fileSize = inputStream.available();    // 현재 읽을 수 있는 byte 수를 반환
+
+            byte[] buffer = new byte[fileSize];
+            inputStream.read(buffer);    // buffer byte 배열의 길이만큼 byte를 읽고 저장
+            inputStream.close();
+
+            // 위에서 선언한 빈 String 객체
+            json_string = new String(buffer, "UTF-8");
+        }
+        catch (IOEception ex) {
+            ex.printStackTrace();
+        }
+
+        return json_string;
+    }
+```
+
+3. **Android에서 JSON 불러와서 보내기**
+
+JSON 파일을 Python 서버에 보내기 위해서는, Json 오브젝트를 String으로 변환 뒤, 이를 다시 byte 배열로 바꿀 필요가 있다. 
+
+```Java
+json_byte = json_string.encode('UTF-8')
+```
+
+```Java
+// Python 서버로 데이터를 송신할 OutputStream
+        ObjectOutputStream outputStream = new ObjectOutputStream(socket.getOutputStream());
+        outputStream.writeObject(data);
+        outputStream.flush(); 
+```
+
+
+
+---
+
+## 3 Android 클라이언트에서 Python 서버로 JSON 파일 보내기
+
+> [sending images through sockets android to python](https://github.com/Lime-Parallelogram/Sending-Images-Through-Sockets-Android-to-Python-/blob/master/Client/MyApplication/app/src/main/java/com/limeparallelogram/imgtransmitproject/MainActivity.java)
+
+위 깃허브 코드에서 가져온 코드이다. MainActivity에 다음 send 클래스를 추가했다.
+
+> [디렉터리 지정: Environment.getExternalStoragePublicDirectory](https://paulaner80.tistory.com/173)
+
+- Environment.getExternalStorageDirectory(): /storage/sdcard0
+
+- Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES): /storage/sdcard0/Movies
+
+```Java
+class send extends AsyncTask<Void,Void,Void> {
+    static Socket s; // 소켓 객체
+
+    @Override
+    protected Void doInBackground(Void...params){
+        try {
+            s = new Socket("192.168.0.18",8080);
+            // 휴대폰 파일 저장 경로를 받아온다.
+            File directory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES); 
+            // 전송할 파일의 경로
+            File sendFilePath = new File(directory, "test.png"); 
+            // 절대 경로로 파일의 InputStream 객체를 생성한다.
+            InputStream input = new FileInputStream(sendFilePath.getAbsolutePath());
+            try {
+                try {
+                    // input으로 지정한 파일을 byte로 읽는다.
+                    int bytesRead;
+                    while ((bytesRead = input.read()) != -1) {
+                         // OutputStream에 write하는 것으로 Python 서버로 전송한다.
+                        s.getOutputStream().write(bytesRead);
+                    }
+                } finally {
+                    // 버퍼에 있는 데이터를 flush
+                    s.getOutputStream().flush();
+                    s.close();
+                }
+            } finally {
+                input.close();
+            }
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+}
+```
+
+---
+
+## 4 Python 서버에서 파일 저장하기
+
+> [Python 소켓 데이터 수신](https://github.com/Lime-Parallelogram/Sending-Images-Through-Sockets-Android-to-Python-/blob/master/Server/ReceiveImage.py)
+
+```Python
+# server_sock.accept()까지 생략
+
+# 파일 이름 지정
+fname = "your path + your file name + file extension"
+
+# 파일을 오픈
+f = open(fname, 'w')
+datain = 1
+
+# 데이터를 저장한다.
+while datain:
+    datain = client_sock.recv(999999999) 
+    f.write(datain)
+
+#closes socket
+f.close()
+listensocket.close()
 ```
 
 ---
