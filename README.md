@@ -63,6 +63,10 @@
 
   > 정답 풍선, 오답 풍선 생성, 정답 처리, 풍선을 스크린에 표시하기, 풍선 움직이기, 문제 만들기 등
 
+- [심화: Thread와 Handler](https://github.com/erectbranch/Android_Studio_Basic/blob/master/ch03/ch3_summary_4.md)
+
+  > application component의 종류, Intent의 의미, Thread, Handler, AsyncTask
+
 ### 🖼 SurfaceView 활용하기
 
 - [SurfaceView 적용하기](https://github.com/erectbranch/Android_Studio_Basic/tree/master/ch04)
